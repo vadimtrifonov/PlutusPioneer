@@ -22,8 +22,8 @@ mkValidator :: Data -> Data -> Data -> ()
 
  The parameters are *Datum*, *Redeemer* and *Context* (transaction)
 
- `()` - Unit type, similar to `void`
- `a` - any type, similar to generics
+* `()` - Unit type, similar to `void`
+* `a` - any type, similar to generics
 
  ```haskell
 {-# INLINABLE mkValidator #-}`
@@ -76,7 +76,7 @@ This macro allows to produce Plutus strings from string literals.
 mkValidator = _ r _ = traceIfFalse "wrong redeemer" $ r == 42
 ```
 
-* `traceIfFalse`  - `PlutusTx.Prelude` function with `String -> Bool -> Bool` signature
+* `traceIfFalse` - `PlutusTx.Prelude` function with `String -> Bool -> Bool` signature
     * if the first `Bool` is `False`, the result is also `False` and the provided string will be logged
     * If the first `Bool` is `True`, the result is also `True` and the string is ignored
 * `$` - allows to avoid parentheses by separating expressions and giving *precedence* to anything after it. 

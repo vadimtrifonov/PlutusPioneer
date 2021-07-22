@@ -32,7 +32,7 @@ Plutus script doesn't have access to the whole state of the blockchain (as in Et
 
 * Datum
 * Redeemer
-* Context (transaction - its inputs and outputs)
+* Context (transaction inputs and outputs, and other information)
 
 ```mermaid  
 graph LR
