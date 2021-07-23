@@ -24,7 +24,7 @@ UTXO:
 
 Extended UTXO:
 
-* Output addresses are generalized and can contain Plutus script (validator)
+* Output addresses are generalized and can contain Plutus script (*Validator*)
 * Outputs can carry arbitrary data called *Datum* in addition to addresses and values
 * *Redeemer* is an arbitrary data provided by the transaction for every input
 

@@ -30,7 +30,7 @@ ScriptContext
 
 The time checking (whether it is in the range of `txInfoValidRange`) is done **before** a validator script is run. This allows to keep the script execution fully deterministic. By default all transactions have infinite time range.
 
-*Slot* is the time unit in Cardano, but Plutus is using real time; therefore, a conversion is required. However, there is no guarantee what the *slot* length will be in future. Thus the maximum `txInfoValidRange` is limited to up to **36 hours** in future or it can be infinite.
+*Slot* is the time unit in Cardano, but Plutus is using real time; therefore, a conversion is required. However, there is no guarantee what the *slot* length will be in future. Thus the maximum `txInfoValidRange` is limited to up to **36 hours** in future or can be infinite.
 
 `POSIXTimeRange` - alias of `Interval POSIXTime`
 
@@ -82,7 +82,7 @@ The transaction has to signed by the beneficiary and the current time has to be 
 	* `txSignedBy :: TxInfo -> PubKeyHash -> Bool` - check whether the given `TxInfo` is signed by the given public key has
 	* `beneficiary dat` - retrieve `beneficiary` from `VestingDatum`
 * `deadlineReached = contains (from $ deadline dat) $ txInfoValidRange info`
-	* `from $ deadline dat` - create a time interval that starts from deadline in `VestingDatum` and until infinity
-	* `contains` - check whether the deadline interval is contained in the transaction validity interval
+	* `from $ deadline dat` - create a time interval that starts from `deadline` in `VestingDatum` and until infinity
+	* `contains` - check whether the deadline interval (which stretches until infinity) contains the transaction validity interval
 
 ^[One thing that I've noticed is that fields are often prefixed with the name of the type they belong to:  `TxInfo` and `txInfoInputs`. It is likely done to avoid the confusion between field access and other function calls, as their syntax is the same (compared to other languages that have dot notation)]

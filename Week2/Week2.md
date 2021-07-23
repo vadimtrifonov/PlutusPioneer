@@ -20,7 +20,7 @@ For anything to happen on the blockhain, it has to be externally triggered. For 
 mkValidator :: Data -> Data -> Data -> ()
 ```
 
- The parameters are *Datum*, *Redeemer* and *Context* (transaction)
+ The parameters are *Datum*, *Redeemer* and *Context* (transaction info)
 
 * `()` - Unit type, similar to `void`
 * `a` - any type, similar to generics
@@ -127,4 +127,4 @@ PlutusTx.unstableMakeIsData ''MyRedeemer
 
 [Template Haskell](https://downloads.haskell.org/~ghc/7.8.4/docs/html/users_guide/template-haskell.html) function that takes the type of *Redeemer* and splices it at compile time to `Data`
 
-`''MyRedeemer` - quote `MyRedeemer` type as `Name`
+* `''MyRedeemer` - quote `MyRedeemer` type as `Name`
