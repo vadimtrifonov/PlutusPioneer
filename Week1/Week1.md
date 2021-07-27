@@ -44,7 +44,7 @@ graph LR
 
 When a node receives a transaction it validates it before accepting to the mempool ^[A pool of pending transactions], and if any input contains Plutus script, it is executed. 
 
-* If Plutus script (validator) fails, the transaction also fails.
+* If Plutus script (*Validator*) fails, the transaction also fails.
 * If some inputs (UTXO) are already consumed, the transaction fails **without** incurring fees.
 
 ## Plutus

@@ -45,17 +45,23 @@ The time checking (whether it is in the range of `txInfoValidRange`) is done **b
 			* `PosInf` - positive infinity
 * `ivTo :: UpperBound a`
 
+`Interval` functions:
+
+* `to` - interval of all values that are lesser than or equal to `a` ^[The documentation of `to` had incorrectness stating that only values smaller than `a` are included in the interval; whereas in the actual implementation `a` is included in the upper boundary]
+* `from` - interval of all values that are greater than or equal to `a`
+
 ## Vesting contract
+
+## On-chain script
 
 ```haskell
 data VestingDatum = VestingDatum
-	{ beneficiary1 :: PubKeyHash
-	, beneficiary2 :: PubKeyHash
-	, deadline     :: POSIXTime
-	} deriving P.Show
+    { beneficiary :: PubKeyHash
+    , deadline    :: POSIXTime
+    } deriving Show
 ```
 
-* `beneficiary1 :: PubKeyHash` - beneficiaries are identified by their public key hash
+* `beneficiary :: PubKeyHash` - beneficiaries are identified by their public key hash
 * `deriving P.Show` - make `VestingDatum` part of the `P.Show` `typeclass`, which makes it printable in REPL
 
 ```haskell
@@ -86,3 +92,65 @@ The transaction has to signed by the beneficiary and the current time has to be 
 	* `contains` - check whether the deadline interval (which stretches until infinity) contains the transaction validity interval
 
 ^[One thing that I've noticed is that fields are often prefixed with the name of the type they belong to:  `TxInfo` and `txInfoInputs`. It is likely done to avoid the confusion between field access and other function calls, as their syntax is the same (compared to other languages that have dot notation)]
+
+### Off-chain script
+
+```haskell
+{-# LANGUAGE DeriveAnyClass #-}
+```
+
+Allows to use `deriving` from any class - only instance declaration will be generated.
+
+```haskell
+{-# LANGUAGE DeriveGeneric #-}
+```
+
+Allows to use [datatype-generic programming](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/generics.html)
+
+```haskell
+data GiveParams = GiveParams
+    { gpBeneficiary :: !PubKeyHash
+    , gpDeadline    :: !POSIXTime
+    , gpAmount      :: !Integer
+    } deriving (Generic, ToJSON, FromJSON, ToSchema)
+
+type VestingSchema =
+            Endpoint "give" GiveParams
+        .\/ Endpoint "grab" ()
+```
+
+`VestingSchema` defines the endpoints that will exposed to the user.
+
+* `Endpoint "give" GiveParams`- an endpoint for setting up the vesting contract, which results in creation of UTXO at the vesting address
+	* `gpBeneficiary` and `gpDeadline` are required for creation of `VestingDatum`
+	* `gpAmount` - the amount of tokens the user wants to vest
+* `Endpoint "grab" ()` - an endpoint for collecting the vested tokens
+	* The beneficiary will check the UTXO at the vesting address, verify it is the expected beneficiary and the deadline has already passed, and will consume this UTXO
+
+### Emulator
+
+Getting the public key hash of a wallet in the emulator:
+
+```haskell
+> l: src/Week03/Vesting.hs
+> import Ledger
+> import Wallet.Emulator
+> pubKeyHash $ walletPubKey $ Wallet 1
+```
+
+* Wallet 1 - `21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9`
+* Wallet 2 - `39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f`
+* Wallet 3 - `dac073e0123bdea59dd9b3bda9cf6037f63aca82627d7abcd5c4ac29dd74003e`
+
+Getting the POSIXTime based on the time slot:
+
+```haskell
+> import Ledger.TimeSlot
+> import Data.Default
+> slotToBeginPOSIXTime def 10
+
+```
+
+* `def` -  default `SlotConfig` from `Data.Default`
+* `slotToBeginPOSIXTime` - get the starting `POSIXTime`of `slot`
+* `slotToEndPOSIXTime` - get the ending `POSIXTime`of `slot`
