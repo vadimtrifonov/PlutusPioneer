@@ -2,7 +2,7 @@
 
 ## About
 
-These are my personal notes taken while following the course. These notes are the result of my own inquiry into the material and almost everything is expressed in my own words. They might be useful to you, if you are looking for an alternative perspective or explanation of things.
+These are my personal notes taken while following the [course](https://testnets.cardano.org/en/plutus-pioneer-program/). These notes are the result of my own inquiry into the material and almost everything is expressed in my own words. They might be useful to you, if you are looking for an alternative perspective or explanation of things.
 
 ## Contents
 
