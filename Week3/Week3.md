@@ -28,9 +28,9 @@ ScriptContext
 	* Transactions that spend a script output need to include the *Datum* of it
 	* Transactions that send value (have output) to a script address have to include only the hash.
 
-The time checking (whether it is in the range of `txInfoValidRange`) is done **before** a validator script is run. This allows to keep the script execution fully deterministic. By default all transactions have infinite time range.
+The time checking (whether it is in the range of `txInfoValidRange`) is done **before** a validator script is run. This allows to keep the script execution fully deterministic. By default all transactions have an infinite time range.
 
-*Slot* is the time unit in Cardano, but Plutus is using real time; therefore, a conversion is required. However, there is no guarantee what the *slot* length will be in future. Thus the maximum `txInfoValidRange` is limited to up to **36 hours** in future or can be infinite.
+*Slot* is the time unit in Cardano, but Plutus is using epoch time; therefore, a conversion is required. However, there is no guarantee what the *slot* length will be in future. Thus the maximum `txInfoValidRange` is limited to up to **36 hours** in future or can be indefinite.
 
 `POSIXTimeRange` - alias of `Interval POSIXTime`
 
@@ -170,7 +170,7 @@ typedValidator p = Scripts.mkTypedValidator @Vesting
     wrap = Scripts.wrapValidator @() @()
 ```
 
-* `PlutusTx.liftCode p` - convert `p` to a Plutus Core compiled code (`PlutusTx.Code.CompiledCodeIn`) as it is a data type and an instance of `PlutusTx.Lift`
+* `PlutusTx.liftCode p` - convert `p` to a Plutus Core compiled code (`PlutusTx.Code.CompiledCodeIn`), it possible because it is a data type and an instance of `PlutusTx.Lift`
 *  `PlutusTx.applyCode` - apply compiled `p` to compiled `mkValidator`
 
 ```haskell
@@ -276,7 +276,7 @@ Where `f` corresponds to `b -> c` and `g` to `a -> b`.
 -4
 ```
 
-Composition has a precedence of 9 (out of 10) and *right* associativity (whereas function application has a precedence of 10 and *left* associativity).
+Composition has a precedence of 9 (out of 10) and *right* associativity (whereas function application has a precedence of 10 and *left* associativity); thus, the parentheses or the dollar operator are needed.
 
 ### Lists
 
