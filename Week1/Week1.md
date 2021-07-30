@@ -6,15 +6,15 @@ To pay 10 ADA to Bob, Alice will create a new transaction that consumes her unsp
 
 ```mermaid  
 graph LR
-    A100(Alice: 100 ADA) --> Tx1[Tx 1]
-    Tx1 --> A90(Alice: 90 ADA)
-    Tx1 --> B10(Bob: 10 ADA)
-    A90 --> Tx2[Tx 2]
-    B10 --> Tx2
-    B50(Bob: 50 ADA) --> Tx2
-    Tx2 --> A35(Alice: 35 ADA)
-    Tx2 --> B5(Bob: 5 ADA)
-    Tx2 --> C110(Charlie: 110 ADA)
+	A100(Alice: 100 ADA) --> Tx1[Tx 1]
+	Tx1 --> A90(Alice: 90 ADA)
+	Tx1 --> B10(Bob: 10 ADA)
+	A90 --> Tx2[Tx 2]
+	B10 --> Tx2
+	B50(Bob: 50 ADA) --> Tx2
+	Tx2 --> A35(Alice: 35 ADA)
+	Tx2 --> B5(Bob: 5 ADA)
+	Tx2 --> C110(Charlie: 110 ADA)
 ```
 
 UTXO:
@@ -30,13 +30,13 @@ Extended UTXO:
 
 Plutus script doesn't have access to the whole state of the blockchain (as in Ethereum), but it has access to:
 
-* Datum
-* Redeemer
-* Context (transaction inputs and outputs, and other information)
+* **Datum** (provided by the party who produced the output)
+* **Redeemer** (provided by the party spending the output)
+* **Context** (transaction inputs and outputs, and other information)
 
 ```mermaid  
 graph LR
-    A(Script: 100 ADA + Datum) --> |Redeemer| Tx1[Tx 1]
+	A(Script: 100 ADA + Datum) --> |Redeemer| Tx1[Tx 1]
 ```
 
 * *Producing* transaction has to provide only a hash
@@ -44,7 +44,7 @@ graph LR
 
 When a node receives a transaction it validates it before accepting to the mempool ^[A pool of pending transactions], and if any input contains Plutus script, it is executed. 
 
-* If Plutus script (*Validator*) fails, the transaction also fails.
+* If Plutus script (*Validator*) fails, the transaction also fails. 
 * If some inputs (UTXO) are already consumed, the transaction fails **without** incurring fees.
 
 ## Plutus

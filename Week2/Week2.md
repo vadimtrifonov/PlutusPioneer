@@ -70,7 +70,7 @@ mkValidator :: () -> Integer -> ScriptContext -> Bool
 mkValidator = _ r _ = traceIfFalse "wrong redeemer" $ r == 42
 ```
 
-See [[#Operators]]
+See [[#Dollar operator]]
 
 * `traceIfFalse` - `PlutusTx.Prelude` function with `String -> Bool -> Bool` signature
 	* if the first `Bool` is `False`, the result is also `False` and the provided string will be logged
@@ -126,11 +126,11 @@ PlutusTx.unstableMakeIsData ''MyRedeemer
 
 ### GHCi (REPL)
 
-`:i` - display the definition of a function, typeclass, or type
-`:t` - display the type of an expression
-`:k` - display the *kind* of a type
-`:l` - load a source
-`:r` - reload the loaded sources
+* `:i` - display the definition of a function, typeclass, or type
+* `:t` - display the type of an expression
+* `:k` - display the *kind* of a type
+* `:l` - load a source
+* `:r` - reload the loaded sources
 
 ### Predefined types
 
@@ -151,9 +151,7 @@ foo :: a -> a -> Bool
 ### Data types
 
 ```haskell
-data Name = 
-	Constructor1 <type-args> |
-	Constructor2 <type-args>
+data Name = Constructor1 <type-args> | Constructor2 <type-args>
 ```
 
 * `data` - define a new data type, everything after `=` are constructors. Multiple constructors are separated with `|`.
@@ -203,10 +201,15 @@ foo :: (Eq a) => a -> String
 
 * Everything before `=>` is a class constraint, which restricts the type of `a` to instances of class `Eq`
 
-### Operators
+### Dollar operator
 
-* `$` - allows to avoid parentheses by separating expressions and giving *precedence* to anything after it. 
-	* `show (1 + 1)` is equivalent to `show $ 1 + 1` 
+```haskell
+($) :: (a -> b) -> a -> b
+```
+
+* `$` has the lowest precedence possible - 0 and _right_ associativity.
+* `$` allows to avoid parentheses by separating expressions and giving *precedence* to anything after it. 
+* `show (1 + 1)` is equivalent to `show $ 1 + 1` 
 
 ### Where
 

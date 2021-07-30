@@ -8,7 +8,7 @@ These are my personal notes taken while following the course. These notes are th
 
 * [Week 1](./Week1/Week1.md) - EUTXO and Plutus
 * [Week 2](./Week2/Week2.md) - Haskell, on-chain Plutus Core script, untyped and typed validators
-* [Week 3](./Week3/Week3.md) - Script context, transaction info, working with time
+* [Week 3](./Week3/Week3.md) - Script context, transaction info, working with time, parametrized validators
 
 ## Disclaimer
 
