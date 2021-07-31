@@ -6,75 +6,143 @@ For anything to happen on the blockhain, it has to be externally triggered. For 
 * Block is a slot that contains a set of recent transactions on the network. 
 * Slots that are inhabited by blocks are called _active_ slots
 
-## Low-level untyped on-chain script
+## Untyped on-chain script
 
- ```haskell
-{-# INLINABLE mkValidator #-}`
-```
-
-This macro makes the body of `mkValidator` function inlineable for `[|| ... ||]`. See [[#Pragmas]]
+### Data
 
 ```haskell
-{-# LANGUAGE OverloadedStrings #-}
+data Data =
+      Constr Integer [Data]
+    | Map [(Data, Data)]
+    | List [Data]
+    | I Integer
+    | B BS.ByteString
+    deriving stock (Show, Eq, Ord, Generic)
+    deriving anyclass (NFData)
 ```
 
-This macro allows to produce Plutus strings from string literals.
+Low-level type for Plutus Core script, analogous to JSON. See [[Haskell Primer#Data types]] and [[Haskell Primer#Typeclasses]].
 
-```haskell
-{-# LANGUAGE NoImplicitPrelude #-}
-```
+* `Data` is defined in `PlutusCore.Data` module (re-exported from `PlutusTx` module).
 
-This macro excludes the standard `Prelude` from being auto-imported to avoid name clashes with `PlutusTx.Prelude`
+### Gift contract
 
 ```haskell
 mkValidator :: Data -> Data -> Data -> ()
 mkValidator _ _ _ = ()
 ```
 
- The parameters are *Datum*, *Redeemer* and *Context* (transaction info). See [[#Predefined types]].
+The most simple *Validator* that will always pass the validation. Any token amount at this script address can be consumed by anyone.
+
+ * [[Haskell Primer#Function declaration]] and [[Haskell Primer#Function definition]] of `mkValidator`. 
+ * The parameters are *Datum*, *Redeemer* and *Context* (transaction info). 
+ * The return type is [[Haskell Primer#Unit]].
+ * The arguments are ignored with [[Haskell Primer#Wildcard]].
  
 ```haskell
 validator :: Validator
 validator = mkValidatorScript $$(PlutusTx.compile [|| mkValidator ||])
 ```
 
- Splice the Haskell expression to the Plutus one. This code relies on [[#Template Haskell]].
+  Transform the Haskell expression to the Plutus expression, this relies on [[Haskell Primer#Template Haskell]].
+ 
+*  `mkValidatorScript` is declared in  `Plutus.V1.Ledger.Scripts` module.
+	*  `mkValidatorScript :: CompiledCode (Data -> Data -> Data -> ()) -> Validator`.
 
-1. `[|| mkValidator ||]` - convert the `mkValidator` expression to the AST of it
-2. `PlutusTx.compile` - compile the Haskell AST of the `mkValidator` and produce the Plutus Core AST
-3. `$$(...)` - splice the Plutus Core AST to the Plutus Core expression
-4. `mkValidatorScript` - transform the Plutus Core expression of `mkValidator`  to `Validator` 
+1. `[|| mkValidator ||]` - quote the `mkValidator` expression to get the abstract syntax tree (AST) of it.
+2. `PlutusTx.compile` - compile the Haskell AST of the `mkValidator` and produce the Plutus Core AST.
+3. `$$(...)` - splice the Plutus Core AST to the Plutus Core expression.
+4. `mkValidatorScript` - transform the Plutus Core expression of `mkValidator`  to `Validator` .
+
+ ```haskell
+{-# INLINABLE mkValidator #-}`
+```
+
+This pragma makes the `mkValidator` function inlineable for `[|| ... ||]`. See [[Haskell Primer#Pragmas]].
 
 ```haskell
+valHash :: Ledger.ValidatorHash
+valHash = Scripts.validatorHash validator
+```
+
+Transform `Validator` (Plutus Core script) into a validator hash represented by `ValidatorHash` type.
+
+* `validatorHash` is declared in `Plutus.V1.Ledger.Scripts` module.
+	* `validatorHash :: Validator -> ValidatorHash`
+
+```haskell
+scrAddress :: Ledger.Address
 scrAddress = scriptAddress validator
 ```
 
-The function `scriptLedger`  converts `Validator` (Plutus Core script) into a blockchain address
+Transform `Validator` into an actual blockchain address represented by `Address` type.
+
+* `scriptAddress` is declared in `Plutus.V1.Ledger.Address` module.
+	* `scriptAddress :: Validator -> Address`
+
+### Burn contract
 
 ```haskell
-error ()
+mkValidator :: Data -> Data -> Data -> ()
+mkValidator _ _ _ = error()
 ```
 
-Plutus error function (`PlutusTx.Prelude.error`) that takes `()` and causes the validator to always fail.
+Such *Validator* will always fail validation.
+
+* `error` is declared in `PlutusTx.Builtins` module.
+	* `error :: () -> a` - where `a` is any type, see [[Haskell Primer#Type variables]]
 
 ```haskell
-traceError "Burnt!"
+{-# LANGUAGE NoImplicitPrelude #-}
 ```
 
-Plutus error function that takes `String` and causes the validator to always fail.
+This pragma excludes Haskell `Prelude` from being auto-imported to avoid name collisions with `PlutusTx.Prelude`.
 
-## High level typed on-chain script
+```haskell
+mkValidator :: Data -> Data -> Data -> ()
+mkValidator _ _ _ = traceError "BURNT!"
+```
+
+This *Validator* will always fail with the specified error message.
+
+* `traceError` is declared in `PlutusTx.Prelude` module.
+	* `traceError :: Builtins.BuiltinString -> a`
+
+```haskell
+{-# LANGUAGE OverloadedStrings #-}
+```
+
+This pragma allows to produce Plutus strings from string literals.
+
+### FortyTwo contract
+
+```haskell
+mkValidator :: Data -> Data -> Data -> ()
+mkValidator _ r _
+    | r == I 42 = ()
+    | otherwise = traceError "wrong redeemer"
+```
+
+This *Validator* will pass validation only if *Redeemer* is `42`.
+
+* [[Haskell Primer#Guards]] are used to test the redeemer argument.
+* `r == I 42` - construct a new `Data` value as `Integer` of `42` and check whether it matches the *Redeemer* `Data` value.
+
+## Typed on-chain script
+
+### Typed contract
 
 ```haskell
 mkValidator :: () -> Integer -> ScriptContext -> Bool
 mkValidator = _ r _ = traceIfFalse "wrong redeemer" $ r == 42
 ```
 
-See [[#Dollar operator]]
+This *Validator* requires specific types of *Datum*, *Redeemer*, and *Context*. It will also log the message, if *Redeemer* is not `42`.
 
-* `traceIfFalse` - `PlutusTx.Prelude` function with `String -> Bool -> Bool` signature
-	* if the first `Bool` is `False`, the result is also `False` and the provided string will be logged
-	* If the first `Bool` is `True`, the result is also `True` and the string is ignored
+* `traceIfFalse` is declared in `PlutusTx.Prelude` module.
+	* `traceIfFalse :: Builtins.BuiltinString -> Bool -> Bool`.
+	* This function returns the given `Bool` argument, and logs the specified string, if it is `False`.
+* `$ r == 42` - is equivalent to `(r == 42)`, see [[Haskell Primer#Dollar operator]].
 
 ```haskell
 data Typed
@@ -83,12 +151,17 @@ instance Scripts.ValidatorTypes Typed where
 	type instance RedeemerType Typed = Integer
 ```
 
-See [[#Data types]], [[#Typeclasses]] and [[#Where]]
+Define a dummy data type `Type` and make it an instance of `ValidatorTypes` typeclass. See [[Haskell Primer#Data types]] and [[Haskell Primer#Typeclasses]].
 
-1. `data Type` - define a new type called `Typed`
-2. `instance Scripts.ValidatorTypes Typed` - make `Typed` an instance of  `ValidatorTypes` typeclass, which wraps *Datum* and *Redeemer* types together
-3. `type intance DatumType Typed = ()` - give `()`  type to `DatumType`
-4. `type instance RedeemerType Typed = Integer` - give `Integer` type to `RedeemerType`
+```haskell
+class ValidatorTypes (a :: Type) where
+    type RedeemerType a :: Type
+    type DatumType a :: Type
+```
+
+* `ValidatorTypes` is declared in `Ledger.Typed.Scripts.Validators` module.
+* `type instance DatumType Typed = ()` - TODO
+* `type instance RedeemerType Typed = Integer`  - TODO
 
 ```haskell
 typedValidator :: Scripts.TypedValidator Typed
@@ -99,130 +172,35 @@ typedValidator = Scripts.mkTypedValidator @Typed
 		wrap = Scripts.wrapValidator @() @Integer
 ```
 
-1. `typedValidator :: Scripts.TypedValidator Typed` - declare `typedValidator` function of type `Scripts.TypedValidator a` (`* -> *`) where `a` is of `Typed` type.
-2. `typedValidator = Scripts.mkTypedValidator @Typed` - give `Typed` as an argument to `mkTypedValidator` function.
-3. `$$(PlutusTx.compile [|| mkValidator ||])` - splice the Haskell expression to the Plutus one.
-4. `$$(PlutusTx.compile [|| wrap ||])` - splice the typed expression to the untyped one using the specified `wrap` function, which converts `Data` arguments to *Datum* and *Redeemer* types.
-5. `wrap = Scripts.wrapValidator @() @Integer` - specify `wrap` function as `wrapValidator` function with *Datum* and *Redeemer* type parameters.
+Transform the Haskell type validator expression to the Plutus typed validator expression.
+
+*  `mkTypedValidator` is declared in  `Ledger.Typed.Scripts.Validators` module.
+	*  `mkTypedValidator :: CompiledCode (ValidatorType a) -> CompiledCode (ValidatorType a -> WrappedValidatorType) -> TypedValidator a`
+
+TODO: review the explanation
+
+1. `typedValidator :: Scripts.TypedValidator Typed` - declare `typedValidator` function with `TypedValidator Typed` return type (where `Typed` is the type argument for `TypedValidator`).
+2. `typedValidator = Scripts.mkTypedValidator @Typed` - give `Typed` as the type argument to `mkTypedValidator` function.
+3. `$$(PlutusTx.compile [|| mkValidator ||])` - splice the Haskell expression to the Plutus expression.
+4. `$$(PlutusTx.compile [|| wrap ||])` - splice the typed expression to the untyped one using the `wrap` function definition.
+5. `wrap = Scripts.wrapValidator @() @Integer` - define `wrap` function as `wrapValidator` function with *Datum* and *Redeemer* type arguments. This function transforms `Data` arguments to `()` and `Integer` types.
 
 ```haskell
 validator :: Validator
 validator = Scripts.validatorScript typedValidator
 ```
 
-* `Scripts.validatorScript typedValidator` - do conversion from `Scripts.TypedValidator a` to `Scripts.Validator`
+Transform the typed validator to the untyped one.
+
+* `validatorScript` is declared in `Ledger.Typed.Scripts.Validators` module.
+	* `validatorScript :: TypedValidator a -> Scripts.Validator`
+
+### IsData contract
 
 ```haskell
 PlutusTx.unstableMakeIsData ''MyRedeemer
 ```
 
-[[#Template Haskell]] function that takes the type of *Redeemer* and splices it at compile time to `Data`
+[[Haskell Primer#Template Haskell]] function that takes the type of *Redeemer* and splices it at compile time to `Data`
 
-* `''MyRedeemer` - quote `MyRedeemer` type as `Name`
-
-***
-
-## Haskell primer
-
-### GHCi (REPL)
-
-* `:i` - display the definition of a function, typeclass, or type
-* `:t` - display the type of an expression
-* `:k` - display the *kind* of a type
-* `:l` - load a source
-* `:r` - reload the loaded sources
-
-### Predefined types
-
-* `()` - Unit type, similar to `void`
-
-### Type variables
-
-```haskell
-foo :: a -> a -> Bool
-```
-
-* `a` - any type, similar to generics
-
-### Kinds
-
-* `*`  - `Data.Kind` of value types (`Int`, `String`)
-
-### Data types
-
-```haskell
-data Name = Constructor1 <type-args> | Constructor2 <type-args>
-```
-
-* `data` - define a new data type, everything after `=` are constructors. Multiple constructors are separated with `|`.
-
-```haskell
-type Palette = [Color]
-```
-
-* `type` - create an alias for a data type
-
-Pattern matching constructors: 
-
-```haskell
-data Foo = Bar Int | Baz String
-
-fromFoo :: Foo -> String
-fromFoo (Bar i) = show i
-fromFoo (Baz s) = s
-```
-
-### Typeclasses
-
-```haskell
-data Foo = Bar Integer | Baz Integer 
-instance Eq Foo where
-    (==) (Bar n) (Bar m) = n == m
-    (==) (Baz n) (Baz m) = n == m
-    (==) _ _ = False
-```
-
-* `typeclass` - defines behavior, similar to an interface
-* `class` - the shorthand for `typeclass`
-* `instance` - define the data type to be an instance of a `typeclass`, similar to an interface implementation
-
-```haskell
-data Foo = Bar | Baz
-	deriving (Read, Show)
-```
-
-* `deriving`  - automatically implement the specified `typeclass` on the associated type
-
-### Typeclass constraints
-
-```haskell
-foo :: (Eq a) => a -> String
-```
-
-* Everything before `=>` is a class constraint, which restricts the type of `a` to instances of class `Eq`
-
-### Dollar operator
-
-```haskell
-($) :: (a -> b) -> a -> b
-```
-
-* `$` has the lowest precedence possible - 0 and _right_ associativity.
-* `$` allows to avoid parentheses by separating expressions and giving *precedence* to anything after it. 
-* `show (1 + 1)` is equivalent to `show $ 1 + 1` 
-
-### Where
-
-`where` allows to define variables at the end of an expression
-
-### Pragmas
-
-* `{-# ... #-}` - [pragmas](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/exts/pragmas.html) are instructions to the compiler (they affect the generated code)
-
-### Template Haskell
-
-See [Template Haskell](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/exts/template_haskell.html)
-
-* AST - Abstract Syntax Tree
-* `[|| ... ||]` - typed expression quotation, quotes the expression and produces the AST of it (`Q Exp`)
-* `$$(...)` - typed expression splice, converts from the AST to the expression
+* `''MyRedeemer` - quote `MyRedeemer` type as `TH.Name`

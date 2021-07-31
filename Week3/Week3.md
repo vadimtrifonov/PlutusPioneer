@@ -149,7 +149,7 @@ validator = Scripts.validatorScript . typedValidator
 
 `validator` is now a function that requires `VestingParam` to produce an actual `Validator`.
 
-* `validator = Scripts.validatorScript . typedValidator` is equivalent to `validator p = Scripts.validatorScript $ typedValidator p`. See [[#Function composition]].
+* `validator = Scripts.validatorScript . typedValidator` is equivalent to `validator p = Scripts.validatorScript $ typedValidator p`.
 
 ```haskell
 valHash :: VestingParam -> Ledger.ValidatorHash
@@ -177,7 +177,7 @@ typedValidator p = Scripts.mkTypedValidator @Vesting
 PlutusTx.makeLift ''VestingParam
 ```
 
-By default `VestingParam` in not an instance of `PlutusTx.Lift`. By providing `TH.Name` of `VestingParam` to `makeLift` it makes it an instance of this typeclass. See [[Week 2#Template Haskell]].
+By default `VestingParam` in not an instance of `PlutusTx.Lift`. By providing `TH.Name` of `VestingParam` to `makeLift` it makes it an instance of this typeclass.
 
 ```haskell
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -222,111 +222,3 @@ Getting the POSIXTime based on the time slot:
 * `def` -  default `SlotConfig` from `Data.Default`
 * `slotToBeginPOSIXTime` - get the starting `POSIXTime`of `slot`
 * `slotToEndPOSIXTime` - get the ending `POSIXTime`of `slot`
-
-***
-
-## Haskell primer
-
-### Infix syntax
-
-```haskell
-> add 2 2
-4
-> 2 `add` 2
-4
-```
-
-### Guards
-
-```haskell
-describe :: Integer -> String
-describe value 
-    | value <= 0 = "None"
-    | value == 1 = "One"
-    | value == 2 = "Two"
-    | otherwise = "Many"
-```
-
-### Let-in
-
-```haskell
-let a = 1; b = 2 in a + b
-```
-
-Similar to `where`, but variables defined by `let` are accessible only to the expression after `in`
-
-### Function composition
-
-```haskell
-(.) :: (b -> c) -> (a -> b) -> a -> c
-```
-
-Given a function `b` to `c`, and a function `a` to `b`, return a function `a` to `c` - allows to compose two steps into one.
-
-```haskell
-(f . g) x = f (g x)
-```
-
-Where `f` corresponds to `b -> c` and `g` to `a -> b`.
-
-```haskell
-> negate . sum $ [2,2]
--4
-> (negate . sum) [2,2]
--4
-```
-
-Composition has a precedence of 9 (out of 10) and *right* associativity (whereas function application has a precedence of 10 and *left* associativity); thus, the parentheses or the dollar operator are needed.
-
-### Lists
-
-Add an element to the start of a list:
-
-```haskell
-element : list 
-```
-
-Add an element to the end of a list:
-
-```haskell
-list ++ [element]
-```
-
-Get the first element:
-
-```haskell
-> head [1,2,3]
-1
-```
-
-Get all elements without the first one:
-
-```haskell
-> tail [1,2,3]
-[2,3]
-```
-
-Get a new list without the last element:
-
-```haskell
-> init [1,2,3]
-[1,2]
-```
-
-Check if a list is empty:
-
-```haskell
-> null []
-True
-> null [1,2,3]
-False
-```
-
-Check all booleans in a list:
-
-```haskell
-> and [True, False, True]
-False
-> or [True, False, True]
-True
-```
