@@ -34,7 +34,7 @@ mkValidator _ _ _ = ()
 
 The most simple *Validator* that will always pass the validation. Any token amount at this script address can be consumed by anyone.
 
- * [[Haskell Primer#Function declaration]] and [[Haskell Primer#Function definition]] of `mkValidator`. 
+ * `mkValidator` function declaration and definition, see [[Haskell Primer#Functions]]. 
  * The parameters are *Datum*, *Redeemer* and *Context* (transaction info). 
  * The return type is [[Haskell Primer#Unit]].
  * The arguments are ignored with [[Haskell Primer#Wildcard]].
@@ -153,15 +153,16 @@ instance Scripts.ValidatorTypes Typed where
 
 Define a dummy data type `Type` and make it an instance of `ValidatorTypes` typeclass. See [[Haskell Primer#Data types]] and [[Haskell Primer#Typeclasses]].
 
+* `ValidatorTypes` is declared in `Ledger.Typed.Scripts.Validators` module.
+
 ```haskell
 class ValidatorTypes (a :: Type) where
     type RedeemerType a :: Type
     type DatumType a :: Type
 ```
 
-* `ValidatorTypes` is declared in `Ledger.Typed.Scripts.Validators` module.
-* `type instance DatumType Typed = ()` - TODO
-* `type instance RedeemerType Typed = Integer`  - TODO
+* `type instance DatumType Typed = ()` - define the type synonym for *Datum* as `()` 
+* `type instance RedeemerType Typed = Integer`  - define the type synonym for *Redeemer* as `Integer` 
 
 ```haskell
 typedValidator :: Scripts.TypedValidator Typed
@@ -174,17 +175,16 @@ typedValidator = Scripts.mkTypedValidator @Typed
 
 Transform the Haskell type validator expression to the Plutus typed validator expression.
 
-*  `mkTypedValidator` is declared in  `Ledger.Typed.Scripts.Validators` module.
+*  `TypedValidator (a :: Type)` type is declared in `Ledger.Typed.Scripts.Validators` module.
+*  `mkTypedValidator` function is also declared in  `Ledger.Typed.Scripts.Validators` module.
 	*  `mkTypedValidator :: CompiledCode (ValidatorType a) -> CompiledCode (ValidatorType a -> WrappedValidatorType) -> TypedValidator a`
-
-TODO: review the explanation
 
 1. `typedValidator :: Scripts.TypedValidator Typed` - declare `typedValidator` function with `TypedValidator Typed` return type (where `Typed` is the type argument for `TypedValidator`).
 2. `typedValidator = Scripts.mkTypedValidator @Typed` - give `Typed` as the type argument to `mkTypedValidator` function.
 3. `$$(PlutusTx.compile [|| mkValidator ||])` - splice the Haskell expression to the Plutus expression.
 4. `$$(PlutusTx.compile [|| wrap ||])` - splice the typed expression to the untyped one using the `wrap` function definition.
-5. `wrap = Scripts.wrapValidator @() @Integer` - define `wrap` function as `wrapValidator` function with *Datum* and *Redeemer* type arguments. This function transforms `Data` arguments to `()` and `Integer` types.
-
+5. `wrap = Scripts.wrapValidator @() @Integer` - define `wrap` function as `wrapValidator` function, which transforms  `Data` arguments to the typed arguments of *Datum* and *Redeemer* - `()` and `Integer` respectively.
+	
 ```haskell
 validator :: Validator
 validator = Scripts.validatorScript typedValidator
@@ -195,12 +195,40 @@ Transform the typed validator to the untyped one.
 * `validatorScript` is declared in `Ledger.Typed.Scripts.Validators` module.
 	* `validatorScript :: TypedValidator a -> Scripts.Validator`
 
-### IsData contract
-
 ```haskell
-PlutusTx.unstableMakeIsData ''MyRedeemer
+valHash :: Ledger.ValidatorHash
+valHash = Scripts.validatorHash typeValidator
 ```
 
-[[Haskell Primer#Template Haskell]] function that takes the type of *Redeemer* and splices it at compile time to `Data`
+Transform `TypedValidator Typed` (Plutus Core script) into a validator hash represented by `ValidatorHash` type.
 
-* `''MyRedeemer` - quote `MyRedeemer` type as `TH.Name`
+* The typed version of `validatorHash` is declared in `Ledger.Typed.Scripts.Validators` module.
+	* `validatorHash :: TypedValidator a -> Scripts.ValidatorHash`
+
+### IsData contract
+
+Conversion between `Data` and specific types is achieved by implementing an instance of `IsData` typeclass declared in `PlutusTx.IsData.Class` module.
+
+```haskell
+class IsData (a :: Type) where
+    toData :: a -> Data
+    fromData :: Data -> Maybe a
+```
+
+For some types like `Data`, `Integer`, `ByteString`, `[a]`, `Void` the instances are already predefined.
+
+```haskell
+newtype MySillyRedeemer = MySillyRedeemer Integer
+```
+
+Define a simple data type `MySillyRedeemer`.
+
+```haskell
+PlutusTx.unstableMakeIsData ''MySillyRedeemer
+```
+
+At compile time, implementation of `IsData` typeclass instance for  `MySillyRedeemer` will be generated.
+
+* `unstableMakeIsData` is [[Haskell Primer#Template Haskell]] function declared in `PlutusTx.IsData.TH` module.
+	* `unstableMakeIsData :: TH.Name -> TH.Q [TH.Dec]`
+* `''MySillyRedeemer` - quote `MySillyRedeemer` type as `TH.Name`

@@ -19,7 +19,9 @@
 
 `_` - wildcard character that matches any value
 
-### Function declaration
+### Functions 
+
+#### Declaration
 
 ```haskell
 mkValidator :: Data -> Data -> Data -> ()
@@ -30,7 +32,7 @@ mkValidator :: Data -> Data -> Data -> ()
 * `()` - return type
 * In Haskell all functions with multiple parameters are curried, which allows [partial application](https://wiki.haskell.org/Partial_application)
 
-### Function definition
+#### Definition
 
 ```haskell
 mkValidator _ _ _ = ()
@@ -52,6 +54,8 @@ error :: () -> a
 
  Haskell data types are similar to `struct` and value types in other languages.
 
+#### Data
+
 ```haskell
 data Data =
       Constr Integer [Data]
@@ -71,11 +75,23 @@ data Data =
 * `Map`, `List`, `I`, `B` - other constructor names
 * `deriving` - see [[#Typeclasses]]
 
+#### Newtype
+
+```haskell
+newtype MySillyRedeemer = MySillyRedeemer Integer
+```
+
+* `newtype` - special case of `data` declaration that permits only one constructor and only one parameter
+* `MySillyRedeemer` - name
+* `MySillyRedeemer Integer` - constructor
+
+#### Type
+
 ```haskell
 type POSIXTimeRange = Interval POSIXTime
 ```
 
-* `type` - define an alias for the specified data type
+* `type` - define a type synonym (i.e., alias) for the specified data type
 * `Interval` - data type declared as `Interval a`
 * `POSIXTime` - type argument for `a` in `Interval` declaration
 
@@ -92,8 +108,8 @@ class ValidatorTypes (a :: Type) where
 * `class` - declare a new typeclass
 * `ValidatorTypes` - typeclass name
 * `(a :: Type)` - type variable
-
-TODO: explain the inner `type` inside `class`
+* `type` - declare an associated type synonym (see [type families](https://wiki.haskell.org/GHC/Type_families))
+* `RedeemerType` - type synonym name
 
 #### Instance
 
@@ -108,8 +124,6 @@ instance Scripts.ValidatorTypes Typed where
 * `Scripts.ValidatorTypes` - typeclass
 * `Typed` - type the instance is being provided for
 * `where` - terminates the initial declaration and follows up with the implementation
-
-TODO: explain `type instance`
 
 #### Deriving
 
