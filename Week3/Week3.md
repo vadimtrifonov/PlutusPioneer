@@ -2,13 +2,16 @@
 
 ## Script context
 
+```haskell
+data ScriptContext = ScriptContext {
+    scriptContextTxInfo :: TxInfo,
+    scriptContextPurpose :: ScriptPurpose
+}
+```
+
 `ScriptContext` is the 3rd parameter of *Validator*
 
-```haskell
-ScriptContext
-	scriptContextTxInfo :: TxInfo
-	scriptContextPurpose :: ScriptPurpose
-```
+* `ScriptContext`, `ScriptPurpose` and `TxInfo` are defined in `Plutus.V1.Ledger.Contexts` module.
 
 `ScriptPurpose` constructors:
 
@@ -25,14 +28,16 @@ ScriptContext
 * `txInfoValidRange :: POSIXTimeRange` - the time range during which this transaction is valid (infinite by default)
 * `txInfoSignatories :: [PubKeyHash]` - the list of public keys that have signed this transaction
 * `txInfoData :: [(DatumHash, Datum)]`
-	* Transactions that spend a script output need to include the *Datum* of it
-	* Transactions that send value (have output) to a script address have to include only the hash.
+	* Transactions that spend a *Validator* script output need to include the *Datum* defined by this script.
+	* Transactions that send tokens (produce an output) to a *Validator* script address have to include only its hash.
 
-The time checking (whether it is in the range of `txInfoValidRange`) is done **before** a validator script is run. This allows to keep the script execution fully deterministic. By default all transactions have an infinite time range.
+## Handling time
 
-*Slot* is the time unit in Cardano, but Plutus is using epoch time; therefore, a conversion is required. However, there is no guarantee what the *slot* length will be in future. Thus the maximum `txInfoValidRange` is limited to up to **36 hours** in future or can be indefinite.
+The time checking (whether it is in the range of `txInfoValidRange`) is done **before** a *Validator* script is run. This allows to keep the script execution fully deterministic. By default all transactions have an infinite time range.
 
-`POSIXTimeRange` - alias of `Interval POSIXTime`
+*Slot* is the time unit in Cardano, but Plutus is using epoch time; therefore, a conversion is required. However, there is no guarantee what the *slot* length will be in future. Thus the maximum `txInfoValidRange` is limited to up to **36 hours** in future (or can be indefinite).
+
+`POSIXTimeRange` is a type synonym of `Interval POSIXTime` declared in `Plutus.V1.Ledger.Time` module.
 
 `Interval` fields:
 
@@ -61,8 +66,11 @@ data VestingDatum = VestingDatum
     } deriving Show
 ```
 
-* `beneficiary :: PubKeyHash` - beneficiaries are identified by their public key hash
-* `deriving P.Show` - automatically make `VestingDatum` an instance of `P.Show` `typeclass`, which makes it printable in REPL
+Define a new data type for *Datum* that outputs will be required to provide to the *Validator*.
+
+* `beneficiary :: PubKeyHash` - beneficiaries are identified by their public key hash.
+	* `PubKeyHash` type is defined in `Plutus.V1.Ledger.Crypto` module. 
+* `deriving P.Show` - automatically make `VestingDatum` an instance of `P.Show` typeclass to make it printable in REPL.
 
 ```haskell
 mkValidator :: VestingDatum -> () -> ScriptContext -> Bool
@@ -81,15 +89,15 @@ mkValidator dat () ctx =
 
 ```
 
-The transaction has to signed by the beneficiary and the current time has to be after the deadline.
+This *Validator* will check that the transaction is signed by the beneficiary and the current time is after the deadline.
 
-* `info = scriptContextTxInfo ctx` - retrieve `TxInfo` from the context
+* `info = scriptContextTxInfo ctx` - get `TxInfo` from the context
 * `signedByBeneficiary = txSignedBy info $ beneficiary dat`
-	* `txSignedBy :: TxInfo -> PubKeyHash -> Bool` - check whether the given `TxInfo` is signed by the given public key has
-	* `beneficiary dat` - retrieve `beneficiary` from `VestingDatum`
+	* `txSignedBy :: TxInfo -> PubKeyHash -> Bool` - check whether the given `TxInfo` is signed by the given public key hash.
+	* `beneficiary dat` - get `beneficiary` from `VestingDatum`
 * `deadlineReached = contains (from $ deadline dat) $ txInfoValidRange info`
 	* `from $ deadline dat` - create a time interval that starts from `deadline` in `VestingDatum` and until infinity
-	* `contains` - check whether the deadline interval (which stretches until infinity) contains the transaction validity interval
+	* `contains` - check whether the deadline interval (which stretches until infinity) contains the transaction validity interval (which is )
 
 ^[One thing that I've noticed is that fields are often prefixed with the name of the type they belong to:  `TxInfo` and `txInfoInputs`. It is likely done to avoid the confusion between field access and other function calls, as their syntax is the same (compared to other languages that have dot notation)]
 
@@ -99,13 +107,13 @@ The transaction has to signed by the beneficiary and the current time has to be 
 {-# LANGUAGE DeriveAnyClass #-}
 ```
 
-Allows to use `deriving` from any class - only instance declaration will be generated.
+Allows to use `deriving` with any typeclass - only instance declaration will be generated.
 
 ```haskell
 {-# LANGUAGE DeriveGeneric #-}
 ```
 
-Allows to use [datatype-generic programming](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/generics.html)
+Allows to use `deriving` for `Generic` typeclass, see [datatype-generic programming](https://ghc.gitlab.haskell.org/ghc/doc/users_guide/exts/generics.html)
 
 ```haskell
 data GiveParams = GiveParams
@@ -123,9 +131,9 @@ type VestingSchema =
 
 * `Endpoint "give" GiveParams`- an endpoint for setting up the vesting contract, which results in creation of UTXO at the vesting address
 	* `gpBeneficiary` and `gpDeadline` are required for creation of `VestingDatum`
-	* `gpAmount` - the amount of tokens the user wants to vest
+	* `gpAmount` - an amount of tokens the user wants to vest
 * `Endpoint "grab" ()` - an endpoint for collecting the vested tokens
-	* The beneficiary will check the UTXO at the vesting address, verify it is the expected beneficiary and the deadline has already passed, and will consume this UTXO
+	* The beneficiary will check the UTXO at the vesting address, verify it is the expected beneficiary and the deadline has already passed, and will consume this UTXO.
 
 ## Parameterized vesting contract
 
@@ -140,7 +148,7 @@ data VestingParam = VestingParam
 mkValidator :: VestingParam -> () -> () -> ScriptContext -> Bool
 ```
 
-Instead of requiring outputs to provide parameters via *Datum* to the validator, it can be changed to accept the parameters from an off-chain script.
+Instead of requiring outputs to provide parameters via *Datum*, the *Validator* can be changed to accept the parameters from an off-chain script.
 
 ```haskell
 validator :: VestingParam -> Validator
@@ -149,7 +157,7 @@ validator = Scripts.validatorScript . typedValidator
 
 `validator` is now a function that requires `VestingParam` to produce an actual `Validator`.
 
-* `validator = Scripts.validatorScript . typedValidator` is equivalent to `validator p = Scripts.validatorScript $ typedValidator p`.
+* `validator = Scripts.validatorScript . typedValidator` is equivalent to `validator p = Scripts.validatorScript $ typedValidator p`, see [[Haskell Primer#Composition operator]]
 
 ```haskell
 valHash :: VestingParam -> Ledger.ValidatorHash
@@ -170,20 +178,27 @@ typedValidator p = Scripts.mkTypedValidator @Vesting
     wrap = Scripts.wrapValidator @() @()
 ```
 
-* `PlutusTx.liftCode p` - convert `p` to a Plutus Core compiled code (`PlutusTx.Code.CompiledCodeIn`), it possible because it is a data type and an instance of `PlutusTx.Lift`
-*  `PlutusTx.applyCode` - apply compiled `p` to compiled `mkValidator`
+* `PlutusTx.liftCode p` - convert `p` to Plutus Core compiled code`CompiledCodeIn`, which is possible for instances of `Lift` typeclass.
+	* `liftCode` function is declared in `PlutusTx.Lift` module.
+	* `CompiledCodeIn` type is defined in `PlutusTx.Code` module.
+	* `Lift` typeclass is declared in `PlutusTx.Lift.Class` module.
+*  `PlutusTx.applyCode` - apply compiled `p` to compiled `mkValidator`.
+	*  `applyCode` function is declared in `PlutusTx.Code` module.
 
 ```haskell
 PlutusTx.makeLift ''VestingParam
 ```
 
-By default `VestingParam` in not an instance of `PlutusTx.Lift`. By providing `TH.Name` of `VestingParam` to `makeLift` it makes it an instance of this typeclass.
+By default `VestingParam` in not an instance of `Lift` typeclass. By providing `Name` of `VestingParam` to `makeLift`, it will generate implementation of `Lift` typeclass instance for  `VestingParam` at compile time.
+
+* `makeLift` is [[Haskell Primer#Template Haskell]] function declared in `PlutusTx.Lift.Class` module.
+	* `makeLift :: TH.Name -> TH.Q [TH.Dec]`
 
 ```haskell
 {-# LANGUAGE MultiParamTypeClasses #-}
 ```
 
-Enables typeclasses with multiple parameters, which is required for `PlutusTx.Lift`, as it has two parameters.
+Enables typeclasses with multiple parameters, which is required for `Lift` typeclass, as it has two parameters.
 
 ### Off-chain script
 

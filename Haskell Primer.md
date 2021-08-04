@@ -202,3 +202,32 @@ $$(PlutusTx.compile [|| mkValidator ||])
 * AST - Abstract Syntax Tree
 * `[|| ... ||]` - typed expression quotation, quotes the expression and produces the AST of it (`Q Exp`)
 * `$$(...)` - typed expression splice, converts from the AST to the expression
+
+```haskell
+PlutusTx.unstableMakeIsData ''MySillyRedeemer
+```
+
+* `''` - quote a type name, `''MySillyRedeemer` has type `Name`.
+* `Name` is used to construct Template Haskell expressions, patterns, declaration, etc.
+
+## Week 3
+
+### Infix syntax
+
+```haskell
+$$(PlutusTx.compile [|| mkValidator ||]) `PlutusTx.applyCode` PlutusTx.liftCode p
+```
+
+* `` `PlutusTx.applyCode` `` - infix function application
+* Equivalent to  `PlutusTx.applyCode $$(PlutusTx.compile [|| mkValidator ||]) (PlutusTx.liftCode p)`
+
+### Composition operator
+
+```haskell
+validator = Scripts.validatorScript . typedValidator
+```
+
+* Equivalent to  `validator p = Scripts.validatorScript $ typedValidator p` .
+* `(.) :: (b -> c) -> (a -> b) -> a -> c` - given a function `b` to `c` and a function `a` to `b`, return a function `a` to `c`.
+* `(f . g) x = f (g x)` - where `f` corresponds to `b -> c` and `g` to `a -> b`.
+* `.` is an infix operator with right *associativity* and the *precedence* of 9 (out of 10), whereas normal function application is left *associative* and has the highest *precedence* possible - 10; therefore, when combined with normal function application.

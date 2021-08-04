@@ -9,7 +9,7 @@ These are my personal notes taken while following the [course](https://testnets.
 * [Haskell Primer](Haskell%20Primer.md) - Introduction to Haskell based on Plutus
 * [Week 1](./Week1/Week1.md) - EUTXO and Plutus
 * [Week 2](./Week2/Week2.md) - On-chain Plutus Core script, untyped and typed validators
-* [Week 3](./Week3/Week3.md) - Script context, transaction info, working with time, parametrized validators
+* [Week 3](./Week3/Week3.md) - Script context, transaction info, handling time, parametrized validators
 
 ## Disclaimer
 
