@@ -52,7 +52,7 @@ error :: () -> a
 
 ### Data types
 
- Haskell data types are similar to `struct` and value types in other languages.
+Haskell data types are similar to `struct` and value types in other languages.
 
 #### Data
 
@@ -170,7 +170,7 @@ typedValidator = Scripts.mkTypedValidator @Typed
 ```
 
 * `where` - allows to define local functions and constants
-* `where` definitions are scoped to the current function 
+* `where` definitions are bound to the current function 
 
 ### Function application operator
 
@@ -188,7 +188,6 @@ traceIfFalse "wrong redeemer" (r == 42)
 * `($) :: (a -> b) -> a -> b`
 * `$` allows to avoid parentheses by separating expressions and giving *precedence* to anything after it. 
 * `$` has right *associativity* and the lowest *precedence* possible - 0, whereas normal function application is left *associative* and has the highest *precedence* possible - 10.
-
 
 ### Pragmas
 
@@ -270,7 +269,7 @@ Functor laws:
 * Identity: `fmap id == id`
 * Composition: `fmap (f . g) == fmap f . fmap g`
 
-#### fmap function
+#### Fmap function
 
 ```haskell
 > fmap (map toUpper) getLine
@@ -284,7 +283,7 @@ Haskell
 	* `f a` - functor that contains `a` 
 	* `f b` - resulting functor that will contain `b` after applying the transformation function `(a -> b)`
 
-#### fmap operator
+#### Fmap operator
 
 * `<$>` - infix version of `fmap` function
 * `(<$>) :: Functor f => (a -> b) -> f a -> f b`
@@ -331,8 +330,8 @@ The idea of a monad is to avoid unwrapping values inside a container before pass
 
 #### Return function
 
-`return` - lifts a type into the monad structure, similar to `pure` function of `Applicative`.
-`return :: Monad m => a -> m a` 
+* `return` - lifts a type into the monad structure, similar to `pure` function of `Applicative`.
+* `return :: Monad m => a -> m a` 
 
 #### Sequencing operator
 
@@ -353,7 +352,8 @@ Haskell
 Haskell
 ```
 
-* `>>=` - binds a monad containing value `a` to a function that takes value `a` and returns it transformed to `b` inside a monad of the same type.
+* `>>=` is similar to `flatMap` function in other languages.
+*  `>>=` - binds a monad containing value `a` to a function that takes value `a` and returns it transformed to `b` inside a monad of the same type.
 * `(>>=) :: Monad m => m a -> (a -> m b) -> m b`
 
 ### IO
@@ -371,21 +371,181 @@ The idea of `IO` is to have a container in which interaction with real world can
 
 ### Maybe
 
-```hahskell
+```haskell
 > readMaybe "42" :: Maybe Int
 ```
 
 * `Maybe` is a data type similar to `Optional` in other languages.
+* `Maybe` has `Monad` instance
 * `data Maybe a = Nothing | Just a` 
+
+### Either
+
+```haskell
+readEither :: Read a => String -> Either String a
+readEither s = case readMaybe s of
+	Nothing -> Left $ "can't parse: " ++ s
+	Just a -> Right a
+```
+
+* `Either` is a data type similar to `Result` in other languages, but more generic.
+* `Either` has `Monad` instance
+* `data Either a b = Left a | Right a` 
 
 ### Anonymous functions
 
 ```haskell
 bar :: IO ()
-bar = getLine >>= \s ->
-	  getLine >>= \t -> 
-	  putStrLn (s ++ t)
+bar = getLine >>= \s -> getLine >>= \t -> putStrLn (s ++ t)
 ```
 
 * `\s` - is a parameter of the anonymous function
 * `\` - is an allusion to *λ* symbol in lambda abstractions
+
+### Case expression
+
+```haskell
+foo :: String -> String -> String -> Maybe Int
+foo x y z = case readMaybe x of
+	Nothing -> Nothing
+	Just k -> case readMaybe y of
+		Nothing -> Nothing
+		Just l -> case readMaybe z of
+		 	Nothing -> Nothing
+			Just m -> Just (k + l + m)
+```
+
+* Similar to pattern matching using `switch` expression in other languages.
+* `case readMaybe x of` - `readMaybe x`  is the expression to be matched.
+* `Nothing -> Nothing` - pattern to match `Nothing` in `Maybe` and return `Nothing`.
+* `Just k -> case readMaybe y of` - pattern to match value `k` in `Maybe` and return another case expression.
+
+### Pattern matching
+
+```haskell
+bindMaybe :: Maybe a -> (a -> Maybe b) -> Maybe b
+bindMaybe Nothing  _ = Nothing
+bindMaybe (Just x) f = f x
+```
+
+* Functions can have separate function definitions for different patterns.
+* `bindMaybe Nothing _` - define a function body for the case when the first argument is matching `Nothing`.
+* `bindMaybe (Just x) f` - define a function body for the case when the first argument is matching `Just x` (`Maybe` contains value `x`).
+
+### Let
+
+```haskell
+foo :: Writer Int -> Writer Int -> Writer Int -> Writer Int
+foo (Writer k xs) (Writer l ys) (Writer m zs) =
+  let
+    s = k + l + m
+    Writer _ us = tell ["sum: " ++ show s]
+  in
+    Writer s $ xs ++ ys ++ zs ++ us
+```
+
+* `let ...` - define variables
+* `in ...` - expression in which defined variables are used
+
+### Do notation
+
+```haskell
+threeInts' :: Monad m => m Int -> m Int -> m Int -> m Int
+threeInts' mx my mz = do
+    k <- mx
+    l <- my
+    m <- mz
+    let s = k + l + m
+    return s
+```
+
+Equivalent to:
+
+```haskell
+threeInts :: Monad m => m Int -> m Int -> m Int -> m Int
+threeInts mx my mz =
+    mx >>= \k ->
+    my >>= \l ->
+    mz >>= \m ->
+    let s = k + l + m in return s
+```
+
+* Do notation is a syntactic convenience for sequencing actions
+* When using `let` inside a `do` block, `in` is not needed
+* `k <- mx` - bind the result of `mx` to the variable `k`
+
+```haskell
+foo'' :: Writer Int -> Writer Int -> Writer Int -> Writer Int
+foo'' x y z = do
+    s <- threeInts x y z
+    tell ["sum: " ++ show s]
+    return s
+```
+
+* `tell ["sum: " ++ show s]` - execute action without binding it to a variable
+
+### Monoid
+
+`Monoid` is a typeclass that declares `mempty` and `mappend` functions. Any `Monoid` instance is also `Semigroup` instance. The most common example of a monoid is a list.
+
+Monoid laws:
+
+* Binary operation - operates on two values
+* Associative - the order of evaluation doesn't matter
+* Identity - there exists a neutral value (when combined with any other value, will return the other value) 
+
+#### Mempty function
+
+* `mempty :: a` - returns the identity value
+
+#### Mappend function
+
+* `mappend :: a -> a -> a` - joins two values together
+
+### List
+
+```haskell
+element : list 
+```
+
+* `:` - add an element to the start of a list.
+
+```haskell
+list ++ [element]
+```
+
+* `++` - add an element to the end of a list.
+
+```haskell
+> head [1,2,3]
+1
+```
+
+* `head` - return the first element.
+
+```haskell
+> tail [1,2,3]
+[2,3]
+```
+
+* `tail` - return all elements without the first one.
+
+```haskell
+> init [1,2,3]
+[1,2]
+```
+
+* `init` - return a new list without the last element.
+
+```haskell
+> null []
+True
+> null [1,2,3]
+False
+```
+
+* `null` - return whether the list is empty.
+
+### Void
+
+* `Void` cannot have a value (whereas `Unit` has one value only), similar to `Never` in other languages.
